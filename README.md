@@ -466,6 +466,60 @@ However, there is no way to stop an attacker from sending ether to a contract by
 
 =========================
 
+8. Vault
+
+=========================
+
+    pragma solidity ^0.4.18;
+
+    contract Vault {
+        bool public locked;
+        bytes32 private password;
+
+        function Vault(bytes32 _password) public {
+            locked = true;
+            password = _password;
+        }
+
+        function unlock(bytes32 _password) public {
+            if (password == _password) {
+                locked = false;
+            }
+        }
+    }
+
+=========================
+
+###Goal
+* Unlock the vault to pass the level!
+
+=========================
+
+### Solution
+
+We need to know the password to unlock the vault.
+
+Since password is made private, it is not directly available to us.
+
+But we can look at the contract's storage to figure out the password. 
+
+There are 2 variables in this contract 1 boolean and 1 bytes32 value.
+Since boolean is declared first and bytes32 takes up 1 full slot, the password variable must be at offset 1.
+    
+    web3.eth.getStorage(contract.address, 1, (error,_result) => { result = _result});
+
+Using this result, call unlock method on vault.
+
+=========================
+
+###Message on completion
+
+It's important to remember that marking a variable as private only prevents other contracts from accessing it. State variables marked as private and local variables are still publicly accessible.
+
+To ensure that data is private, it needs to be encrypted before being put onto the blockchain. In this scenario, the decryption key should never be sent on-chain, as it will then be visible to anyone who looks for it. zk-SNARKs provide a way to determine whether someone possesses a secret parameter, without ever having to reveal the parameter.
+
+=========================
+
 9. King
 
 =========================
